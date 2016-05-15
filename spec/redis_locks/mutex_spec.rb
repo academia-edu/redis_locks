@@ -31,7 +31,7 @@ describe RedisLocks::Mutex do
 
   context 'when locked' do
     before do
-       mutex.lock!
+      mutex.lock!
     end
 
     it 'does not allow locking again' do
@@ -56,6 +56,17 @@ describe RedisLocks::Mutex do
       it 'allows locking' do
         expect(mutex.lock).to be_truthy
       end
+    end
+  end
+
+  context 'when locked but expired' do
+    before do
+      mutex.lock!(expires_at: Time.now.utc.to_i+1)
+      sleep(2)
+    end
+
+    it 'allows lock' do
+      expect(mutex.lock).to be_truthy
     end
   end
 end

@@ -29,9 +29,8 @@ A simple mutex using `setnx`.
   lock.unlock # now lock can be acquired again
 ```
 
-Supports lock expiry via `expires_in`/`expires_at` arguments to the constructor.
-By default, locks expire after 24 hours.
-
+Supports lock expiry via an `expires_in` argument to the constructor or 
+`expires_at` argument to `lock`/`lock!`. By default, locks expire after 24 hours.
 
 ## RedisLocks::Semaphore
 
