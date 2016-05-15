@@ -5,7 +5,6 @@ describe RedisLocks::Semaphore do
     let(:semaphore) {
       RedisLocks::Semaphore.new(
         'testsemaphore',
-        redis: $redis,
         resources: 1
       )
     }
@@ -88,7 +87,6 @@ describe RedisLocks::Semaphore do
     let(:semaphore) {
       RedisLocks::Semaphore.new(
         'testsem',
-        redis: $redis,
         resources: 2
       )
     }

@@ -41,7 +41,7 @@ module RedisLocks
     # max of `number` tokens being available). Each time a resource is used, a
     # token is removed from the bucket; if no tokens are available, no resource
     # may be used.
-    def initialize(key, redis:, period: 1, number: 1)
+    def initialize(key, period: 1, number: 1, redis: RedisLocks.redis)
       @key = "#{NAMESPACE}:#{key}".freeze
       @rps = number.to_f / period.to_i
       @burst = number.to_i

@@ -62,7 +62,7 @@ module RedisLocks
     #
     # `stale_client_timeout` is the threshold of time before we assume that
     # something has gone terribly wrong with a client and we invalidate its lock.
-    def initialize(key, redis:, resources: 1, stale_client_timeout: 86400)
+    def initialize(key, resources: 1, stale_client_timeout: 86400, redis: RedisLocks.redis)
       @key = key
       @resource_count = resources.to_i
       @stale_client_timeout = stale_client_timeout.to_f

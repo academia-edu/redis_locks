@@ -9,7 +9,7 @@ module RedisLocks
 
     NAMESPACE = "mutex"
 
-    def initialize(key, redis:, expires_in: 86400)
+    def initialize(key, expires_in: 86400, redis: RedisLocks.redis)
       @key = "#{NAMESPACE}:#{key}"
       @redis = redis
       @expires_in = expires_in.to_i

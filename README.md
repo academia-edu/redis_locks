@@ -16,7 +16,9 @@ A simple mutex using `setnx`.
   require 'redis'
   require 'redis_locks'
 
-  lock = RedisLocks::Mutex.new('my_key', redis: Redis.new)
+  RedisLocks.redis = Redis.new
+
+  lock = RedisLocks::Mutex.new('my_key')
 
   # high-level use
   lock.lock! do 
@@ -42,7 +44,9 @@ Supports multiple resources, waits to acquire a resource, and timeouts.
   require 'redis'
   require 'redis_locks'
 
-  semaphore = RedisLocks::Semaphore.new('my_key', redis: Redis.new, resources: 2)
+  RedisLocks.redis = Redis.new
+
+  semaphore = RedisLocks::Semaphore.new('my_key', resources: 2)
 
   # high-level use
   semaphore.lock! do
@@ -74,8 +78,10 @@ A [token-bucket](https://en.wikipedia.org/wiki/Token_bucket) rate limiter implem
   require 'redis'
   require 'redis_locks'
 
+  RedisLocks.redis = Redis.new
+
   # allows up to two calls to `take`/`take!` every five seconds
-  limiter = RedisLocks::TokenBucket.new('my_key', redis: Redis.new, period: 5, number: 2)
+  limiter = RedisLocks::TokenBucket.new('my_key', period: 5, number: 2)
 
   2.times { limiter.take! }
 

@@ -5,7 +5,6 @@ describe RedisLocks::TokenBucket do
     let(:bucket) {
       RedisLocks::TokenBucket.new(
         "testbucket",
-        redis: $redis,
         period: 2,
         number: 2
       )

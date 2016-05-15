@@ -2,10 +2,7 @@ require 'spec_helper'
 
 describe RedisLocks::Mutex do
   let(:mutex) {
-    RedisLocks::Mutex.new(
-      'testmutex',
-      redis: $redis
-    )
+    RedisLocks::Mutex.new('testmutex')
   }
 
   it 'allows locking' do
