@@ -20,15 +20,22 @@ module RedisLocks
     def lock(expires_at: nil, &block)
       now = Time.now.utc.to_i
       locked = false
-      expires_at ||= now + @expires_in
+
+      if expires_at
+        expires_at = expires_at.to_i
+      else
+        expires_at = now + @expires_in
+      end
 
       if @redis.setnx(@key, expires_at)
         @redis.expire(@key, expires_at - now)
+        @expires_at = expires_at
         locked = true
       else # it was locked
         if (old_value = @redis.get(@key)).to_i <= now
           # lock has expired
           if @redis.getset(@key, expires_at) == old_value
+            @expires_at = expires_at
             locked = true
           end
         end
@@ -46,16 +53,15 @@ module RedisLocks
     end
 
     def unlock
-      @redis.watch(@key) do
-        # only delete the key if it's still valid, and will be for another 2 seconds
-        if @redis.get(@key).to_i > Time.now.utc.to_i + 2
-          @redis.multi do |multi|
-            multi.del(@key)
-          end
-        else
-          @redis.unwatch
-        end
+      return unless @expires_at
+
+      # To prevent deleting a lock acquired from another process, only delete
+      # the key if it's still valid, and will be for another 2 seconds
+      if Time.now.utc.to_i - 2 < @expires_at
+        @redis.del(@key)
       end
+
+      @expires_at = nil
     end
 
     private
