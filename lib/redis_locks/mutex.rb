@@ -11,7 +11,7 @@ module RedisLocks
 
     def initialize(key, expires_in: 86400, redis: RedisLocks.redis)
       @key = "#{NAMESPACE}:#{key}"
-      @redis = redis
+      @redis = Connections.ensure_pool(redis)
       @expires_in = expires_in.to_i
 
       raise ArgumentError.new("Invalid expires_in: #{expires_in}") unless expires_in > 0
@@ -27,16 +27,18 @@ module RedisLocks
         expires_at = now + @expires_in
       end
 
-      if @redis.setnx(@key, expires_at)
-        @redis.expire(@key, expires_at - now)
-        @expires_at = expires_at
-        locked = true
-      else # it was locked
-        if (old_value = @redis.get(@key)).to_i <= now
-          # lock has expired
-          if @redis.getset(@key, expires_at) == old_value
-            @expires_at = expires_at
-            locked = true
+      @redis.with do |conn|
+        if conn.setnx(@key, expires_at)
+          conn.expire(@key, expires_at - now)
+          @expires_at = expires_at
+          locked = true
+        else # it was locked
+          if (old_value = conn.get(@key)).to_i <= now
+            # lock has expired
+            if conn.getset(@key, expires_at) == old_value
+              @expires_at = expires_at
+              locked = true
+            end
           end
         end
       end
@@ -58,7 +60,7 @@ module RedisLocks
       # To prevent deleting a lock acquired from another process, only delete
       # the key if it's still valid, and will be for another 2 seconds
       if Time.now.utc.to_i - 2 < @expires_at
-        @redis.del(@key)
+        @redis.with { |conn| conn.del(@key) }
       end
 
       @expires_at = nil

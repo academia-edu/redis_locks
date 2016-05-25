@@ -45,24 +45,32 @@ module RedisLocks
       @key = "#{NAMESPACE}:#{key}".freeze
       @rps = number.to_f / period.to_i
       @burst = number.to_i
-      @redis = redis
+      @redis = Connections.ensure_pool(redis)
     end
 
     def take
-      epoch_i, microseconds = @redis.time
-      epoch_f = epoch_i + (microseconds.to_f/1_000_000)
-      took = RedisLocks.evalsha_or_eval(
-        redis: @redis,
-        script: SCRIPT,
-        digest: DIGEST,
-        keys: [@key],
-        args: [epoch_f, @rps, @burst]
-      )
+      took = @redis.with do |conn|
+        RedisLocks.evalsha_or_eval(
+          conn: conn,
+          script: SCRIPT,
+          digest: DIGEST,
+          keys: [@key],
+          args: [epoch_f(conn), @rps, @burst]
+        )
+      end
+
       took == 1
     end
 
     def take!
       raise RateLimitExceeded.new(@key, @rps) unless take
+    end
+
+    private
+
+    def epoch_f(conn)
+      epoch_i, microseconds = conn.time
+      epoch_i + (microseconds.to_f/1_000_000)
     end
 
   end

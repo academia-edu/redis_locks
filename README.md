@@ -92,3 +92,13 @@ A [token-bucket](https://en.wikipedia.org/wiki/Token_bucket) rate limiter implem
 
   limiter.take # true
 ```
+
+# Configuration
+
+We use a connection pool, because a connection shared among multiple threads
+will result in contention when using blocking Redis operations.
+
+`RedisLocks.redis=` and the `redis:` option in the initializer for each utility
+can each be passed either a plain Redis object or an object responding to `with`
+(which will be expected to accept a block and yield a Redis connection, e.g.
+an instance of [ConnectionPool](https://github.com/mperham/connection_pool)).
