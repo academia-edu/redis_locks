@@ -20,6 +20,7 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
 
   s.add_dependency "redis"
+  s.add_dependency "connection_pool"
 
   s.add_development_dependency "rspec"
   s.add_development_dependency "rake"

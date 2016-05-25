@@ -66,7 +66,7 @@ module RedisLocks
       @key = key
       @resource_count = resources.to_i
       @stale_client_timeout = stale_client_timeout.to_f
-      @redis = redis
+      @redis = Connections.ensure_pool(redis)
       @tokens = []
 
       raise ArgumentError.new("Lock key is required") if @key.nil? || @key.empty?
@@ -76,8 +76,11 @@ module RedisLocks
 
     # Forcefully clear the lock. Be careful!
     def delete!
-      @redis.del(available_key)
-      @redis.del(grabbed_key)
+      @redis.with do |conn|
+        conn.del(available_key)
+        conn.del(grabbed_key)
+      end
+
       @tokens = []
     end
 
@@ -101,18 +104,21 @@ module RedisLocks
     def lock(timeout: nil, &block)
       ensure_exists_and_release_stale_locks!
 
-      success =
+      success = @redis.with do |conn|
         if timeout
-          !@redis.blpop(available_key, timeout.to_i).nil?
+          !conn.blpop(available_key, timeout.to_i).nil?
         else
-          !@redis.lpop(available_key).nil?
+          !conn.lpop(available_key).nil?
         end
+      end
 
       return false unless success
 
       token = SecureRandom.hex(16)
       @tokens.push(token)
-      @redis.zadd(grabbed_key, epoch_f, token)
+      @redis.with do |conn|
+        conn.zadd(grabbed_key, epoch_f(conn), token)
+      end
 
       return_or_yield(token, &block)
     end
@@ -141,9 +147,13 @@ module RedisLocks
     def unlock(token = @tokens.pop)
       return unless token
 
-      removed = @redis.zrem grabbed_key, token
-      if removed
-        @redis.lpush available_key, 1
+      removed = false
+
+      @redis.with do |conn|
+        removed = conn.zrem grabbed_key, token
+        if removed
+          conn.lpush available_key, 1
+        end
       end
 
       removed
@@ -165,13 +175,15 @@ module RedisLocks
     end
 
     def ensure_exists_and_release_stale_locks!
-      RedisLocks.evalsha_or_eval(
-        redis: @redis,
-        script: SETUP_SCRIPT,
-        digest: SETUP_DIGEST,
-        keys: [available_key, grabbed_key],
-        args: [@resource_count, stale_before]
-      )
+      @redis.with do |conn|
+        RedisLocks.evalsha_or_eval(
+          conn: conn,
+          script: SETUP_SCRIPT,
+          digest: SETUP_DIGEST,
+          keys: [available_key, grabbed_key],
+          args: [@resource_count, stale_before(conn)]
+        )
+      end
     end
 
     def namespaced_key(variable)
@@ -186,12 +198,12 @@ module RedisLocks
       @grabbed_key ||= namespaced_key('GRABBED')
     end
 
-    def stale_before
-      epoch_f - @stale_client_timeout
+    def stale_before(conn)
+      epoch_f(conn) - @stale_client_timeout
     end
 
-    def epoch_f
-      epoch_i, microseconds = @redis.time
+    def epoch_f(conn)
+      epoch_i, microseconds = conn.time
       epoch_i + microseconds.to_f / 1_000_000
     end
 
