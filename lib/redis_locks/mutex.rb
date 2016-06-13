@@ -5,6 +5,12 @@ module RedisLocks
     end
   end
 
+  class MutexExpired < LockError
+    def initialize(key)
+      super("Mutex [#{key}] has expired!")
+    end
+  end
+
   class Mutex
 
     NAMESPACE = "mutex"
@@ -59,11 +65,21 @@ module RedisLocks
 
       # To prevent deleting a lock acquired from another process, only delete
       # the key if it's still valid, and will be for another 2 seconds
-      if Time.now.utc.to_i - 2 < @expires_at
+      if !expired?(safety_margin: 2)
         @redis.with { |conn| conn.del(@key) }
       end
 
       @expires_at = nil
+    end
+
+    def expired?(safety_margin: 0)
+      return true unless @expires_at
+
+      Time.now.utc.to_i + safety_margin >= @expires_at
+    end
+
+    def not_expired!(safety_margin: 0)
+      raise MutexExpired.new(@key) if expired?(safety_margin: safety_margin)
     end
 
     private
