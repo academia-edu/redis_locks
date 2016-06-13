@@ -5,7 +5,7 @@ module RedisLocks
     end
   end
 
-  class MutexExpired < RuntimeError
+  class MutexExpired < LockError
     def initialize(key)
       super("Mutex [#{key}] has expired!")
     end

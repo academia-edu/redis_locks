@@ -1,4 +1,5 @@
 require 'redis_locks/version'
+require 'redis_locks/lock_error'
 require 'redis_locks/resource_unavailable'
 require 'redis_locks/evalsha_or_eval'
 require 'redis_locks/mutex'

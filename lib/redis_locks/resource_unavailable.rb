@@ -1,4 +1,4 @@
 module RedisLocks
-  class ResourceUnavailable < RuntimeError
+  class ResourceUnavailable < LockError
   end
 end
