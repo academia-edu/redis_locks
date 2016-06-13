@@ -45,6 +45,22 @@ describe RedisLocks::Mutex do
       expect { mutex.lock! }.to raise_error(RedisLocks::AlreadyLocked)
     end
 
+    it 'says not expired' do
+      expect(mutex.expired?).to be_falsey
+    end
+
+    it 'says not expired with small safety margin' do
+      expect(mutex.expired?(safety_margin: 2)).to be_falsey
+    end
+
+    it 'says expired with large safety margin' do
+      expect(mutex.expired?(safety_margin: 60 * 60 * 24 * 365)).to be_truthy
+    end
+
+    it 'asserts not_expired!' do
+      mutex.not_expired!
+    end
+
     context 'and then unlocked' do
       before do
         mutex.unlock
@@ -64,6 +80,14 @@ describe RedisLocks::Mutex do
 
     it 'allows lock' do
       expect(mutex.lock).to be_truthy
+    end
+
+    it 'says expired' do
+      expect(mutex.expired?).to be_truthy
+    end
+
+    it 'fails not_expired!' do
+      expect { mutex.not_expired! }.to raise_error(RedisLocks::MutexExpired)
     end
   end
 end
