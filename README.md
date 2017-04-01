@@ -1,4 +1,4 @@
-# redis-locks
+# Redis Locks
 Various locking utilities for Ruby using Redis.
 
 All classes are designed to work with Ruby clients distributed across multiple
