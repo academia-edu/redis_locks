@@ -24,6 +24,7 @@
 # THE SOFTWARE.
 #
 require 'digest'
+require 'securerandom'
 
 module RedisLocks
   class SemaphoreUnavailable < ResourceUnavailable
